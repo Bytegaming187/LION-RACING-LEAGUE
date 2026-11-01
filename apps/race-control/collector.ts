@@ -1,0 +1,16 @@
+import {recorder} from './recording.ts';
+import {collision} from '../../packages/telemetry/collision.ts';
+import dgram from 'node:dgram';
+import {randomUUID} from 'node:crypto';
+import {mkdir,readdir,readFile,writeFile,rename,unlink} from 'node:fs/promises';
+import {join,resolve} from 'node:path';
+import {sign} from '../../packages/telemetry/index.ts';
+const deviceId=process.env.DEVICE_ID,secret=process.env.DEVICE_SECRET;
+if(!deviceId||!secret)throw Error('DEVICE_ID und DEVICE_SECRET müssen gesetzt sein');
+const spool=resolve('data',`spool-${deviceId.replace(/[^a-zA-Z0-9_-]/g,'_')}`);await mkdir(spool,{recursive:true});
+const recording=await recorder();
+const socket=dgram.createSocket('udp4');let busy=false;
+socket.on('message',async raw=>{const id=randomUUID();if(collision(raw))recording.incident(id);const path=join(spool,id+'.json');const body=JSON.stringify({version:1,deviceId,eventId:id,capturedAt:new Date().toISOString(),simulation:'f1-25',raw:raw.toString('base64')});try{await writeFile(path+'.tmp',JSON.stringify({body,signature:sign(body,secret)}));await rename(path+'.tmp',path);}catch(e){console.error('Pufferfehler',e);}});
+socket.on('error',e=>{console.error(e);process.exitCode=1;socket.close();});
+socket.bind(Number(process.env.UDP_PORT??20777),'127.0.0.1',()=>console.log('F1 UDP-Erfassung aktiv; Rohdaten werden lokal gepuffert.'));
+setInterval(async()=>{if(busy)return;busy=true;try{for(const file of (await readdir(spool)).filter(f=>f.endsWith('.json')).sort().slice(0,120)){const path=join(spool,file),entry=JSON.parse(await readFile(path,'utf8'));const response=await fetch(`${process.env.API_URL??'http://localhost:4000'}/v1/telemetry`,{method:'POST',headers:{'Content-Type':'application/json','X-Signature':entry.signature},body:entry.body,signal:AbortSignal.timeout(5000)});if(!response.ok){console.error('Übertragung angehalten:',response.status);break;}await unlink(path);}}catch{console.error('Server nicht erreichbar; Daten bleiben im Puffer.');}finally{busy=false;}},1000);

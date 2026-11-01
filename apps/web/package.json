@@ -1,0 +1,1 @@
+{"name":"@lrl/web","private":true,"scripts":{"dev":"next dev","build":"next build","start":"next start"},"dependencies":{"next":"16.4.3","react":"^19.2.0","react-dom":"^19.2.0","sanitize-html":"^2.18.1"}}

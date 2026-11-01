@@ -1,0 +1,3 @@
+import type {League} from './index.ts';
+export const f1Teams=[['mclaren','McLaren','#ff8000'],['ferrari','Ferrari','#e8002d'],['red-bull','Red Bull Racing','#3671c6'],['mercedes','Mercedes','#27f4d2'],['aston-martin','Aston Martin','#229971'],['alpine','Alpine','#ff87bc'],['haas','Haas','#b6babd'],['racing-bulls','Racing Bulls','#6692ff'],['williams','Williams','#64c4ff'],['sauber','Kick Sauber','#52e252']].map(([id,name,color])=>({id,name,color}));
+export function starterLeague():League{return {divisions:[{id:'division-1',name:'Division 1',capacity:20}],teams:f1Teams.map(t=>({...t,divisionId:'division-1'})),drivers:[],weekends:[],regulations:'',rules:{points:[25,18,15,12,10,8,6,4,2,1],fastestLapPoints:1,fastestLapTop:20,sprintPoints:[8,7,6,5,4,3,2,1]}};}
