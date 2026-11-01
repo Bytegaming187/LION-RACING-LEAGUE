@@ -1,0 +1,30 @@
+{
+  "name": "lion-racing-league",
+  "type": "module",
+  "private": true,
+  "workspaces": [
+    "apps/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev -w @lrl/web",
+    "api": "node --env-file-if-exists=.env --experimental-strip-types apps/api/server.ts",
+    "test": "node --experimental-strip-types --test tests/*.test.ts",
+    "check": "tsc --noEmit",
+    "build": "npm run build -w @lrl/web",
+    "collector": "node --env-file-if-exists=.env --experimental-strip-types apps/race-control/collector.ts",
+    "simulator": "node --experimental-strip-types apps/race-control/simulator.ts",
+    "app": "electron apps/race-control/desktop.cjs"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "@types/react-dom": "^19.0.0",
+    "@types/sanitize-html": "^2.16.2",
+    "electron": "^45.2.1",
+    "typescript": "^5.9.0"
+  },
+  "dependencies": {
+    "@types/pg": "^8.15.0",
+    "pg": "^8.16.0"
+  }
+}

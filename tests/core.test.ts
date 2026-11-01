@@ -1,0 +1,16 @@
+import {test} from 'node:test';
+import assert from 'node:assert/strict';
+import {score,standings} from '../packages/scoring/index.ts';
+import {sign,verify,inspectPacket} from '../packages/telemetry/index.ts';
+import {validateLeague,emptyLeague,type Result} from '../packages/domain/index.ts';
+import {can} from '../packages/permissions/index.ts';
+const rules={points:[25,18,15],fastestLapPoints:1,fastestLapTop:2};
+const results:Result[]=[{driverId:'a',teamId:'x',laps:20,timeMs:100000,status:'finished',fastestLap:true},{driverId:'b',teamId:'y',laps:20,timeMs:101000,status:'finished'},{driverId:'c',teamId:'x',laps:19,timeMs:90000,status:'dnf'}];
+test('Zeitstrafe ändert Reihenfolge, Bonus und Teamwertung',()=>{const r=score(results,[{id:'p',driverId:'a',sessionId:'s',kind:'time',value:5,reason:'Kollision'}],rules);assert.deepEqual(r.map(x=>x.driverId),['b','a','c']);assert.equal(r[1].points,19);assert.equal(standings([r]).teams.x,34);});
+test('DSQ erhält keine Punkte und steht am Ende',()=>{const r=score(results,[{id:'p',driverId:'a',sessionId:'s',kind:'dsq',value:0,reason:'Regelverstoß'}],rules);assert.equal(r[2].driverId,'a');assert.equal(r[2].points,0);});
+test('Positionsstrafe und Punkteabzug',()=>{const r=score(results,[{id:'p',driverId:'a',sessionId:'s',kind:'positions',value:1,reason:'Strafe'},{id:'q',driverId:'b',sessionId:'s',kind:'points',value:30,reason:'Abzug'}],rules);assert.equal(r[0].driverId,'b');assert.equal(r[0].points,0);});
+test('Signatur erkennt Manipulation',()=>{const signature=sign('payload','secret');assert.ok(verify('payload',signature,'secret'));assert.equal(verify('altered',signature,'secret'),false);assert.equal(verify('payload','nope','secret'),false);});
+test('Paketformat und unvollständige Pakete',()=>{assert.throws(()=>inspectPacket(Buffer.alloc(1)));const b=Buffer.alloc(2);b.writeUInt16LE(2025);assert.ok(inspectPacket(b).supported);});
+test('Teamlimit und doppelte Spielkennung verhindern',()=>{validateLeague(emptyLeague);const l={...emptyLeague,divisions:[{id:'d',name:'Division',capacity:20}],teams:[{id:'t',name:'Team',color:'#fff',divisionId:'d'}],drivers:['a','b','c'].map(id=>({id,name:id,gameId:id,teamId:'t',divisionId:'d'}))};assert.throws(()=>validateLeague(l),/zwei/);});
+test('Wertungsdaten validieren',()=>{assert.throws(()=>score([{...results[0],timeMs:-1}],[],rules));assert.throws(()=>score([results[0],results[0]],[],rules));});
+test('Rollen trennen Stammdaten und Wertung',()=>{assert.ok(can('steward','result:write'));assert.equal(can('steward','league:write'),false);assert.equal(can('driver','result:write'),false);});

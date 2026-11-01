@@ -1,0 +1,2 @@
+const {app,BrowserWindow}=require('electron');
+app.whenReady().then(()=>{const win=new BrowserWindow({width:1280,height:860,minWidth:840,minHeight:600,title:'Lion Racing League · Race Control',backgroundColor:'#100b0e',webPreferences:{nodeIntegration:false,contextIsolation:true,sandbox:true}});win.loadURL('http://localhost:3000/app');win.webContents.setWindowOpenHandler(()=>({action:'deny'}));win.webContents.on('will-navigate',(event,url)=>{if(new URL(url).origin!=='http://localhost:3000')event.preventDefault();});});app.on('window-all-closed',()=>app.quit());
